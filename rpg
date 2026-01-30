@@ -1,0 +1,137 @@
+--// SERVICES
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local PG = LP:WaitForChild("PlayerGui")
+
+--// CLEAN UP
+if PG:FindFirstChild("SwordSpam_NonStop_V8") then
+    PG:FindFirstChild("SwordSpam_NonStop_V8"):Destroy()
+end
+
+--// GUI (Siêu nhỏ gọn)
+local gui = Instance.new("ScreenGui", PG)
+gui.Name = "SwordSpam_NonStop_V8"
+gui.ResetOnSpawn = false
+
+local menuBtn = Instance.new("TextButton", gui)
+menuBtn.Size = UDim2.new(0, 60, 0, 25)
+menuBtn.Position = UDim2.new(0, 5, 0.4, 0)
+menuBtn.Text = "MENU"
+menuBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+menuBtn.TextColor3 = Color3.new(1, 1, 1)
+menuBtn.Draggable = true
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 210, 0, 270) 
+frame.Position = UDim2.new(0.5, -105, 0.5, -135)
+frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+frame.Active = true
+frame.Draggable = true
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 25)
+title.Text = "NON-STOP SPAMMER V8"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+title.TextSize = 11
+
+local box = Instance.new("TextBox", frame)
+box.Size = UDim2.new(1, -16, 0, 50)
+box.Position = UDim2.new(0, 8, 0, 35)
+box.MultiLine = true
+box.Text = ""
+box.PlaceholderText = "Xoá và dán thoải mái ở đây..."
+box.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+box.TextColor3 = Color3.new(1, 1, 1)
+box.TextWrapped = true
+box.TextSize = 10
+
+-- ===== PRESET LIST (Giữ nguyên tiện ích) =====
+local presetList = Instance.new("ScrollingFrame", frame)
+presetList.Size = UDim2.new(1, -16, 0, 100)
+presetList.Position = UDim2.new(0, 8, 0, 90)
+presetList.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+presetList.CanvasSize = UDim2.new(0, 0, 10, 0)
+presetList.ScrollBarThickness = 2
+
+local uiList = Instance.new("UIListLayout", presetList)
+uiList.Padding = UDim.new(0, 3)
+
+-- ===== CONTROLS =====
+local delayBox = Instance.new("TextBox", frame)
+delayBox.Size = UDim2.new(0.3, -10, 0, 22)
+delayBox.Position = UDim2.new(0, 8, 0, 200)
+delayBox.Text = "0.05"
+delayBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+delayBox.TextColor3 = Color3.new(1, 1, 1)
+
+local toggle = Instance.new("TextButton", frame)
+toggle.Size = UDim2.new(0.7, -10, 0, 22)
+toggle.Position = UDim2.new(0.3, 5, 0, 200)
+toggle.Text = "SPAM: OFF"
+toggle.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+toggle.TextColor3 = Color3.new(1, 1, 1)
+
+local clear = Instance.new("TextButton", frame)
+clear.Size = UDim2.new(1, -16, 0, 25)
+clear.Position = UDim2.new(0, 8, 0, 230)
+clear.Text = "XOÁ TRỐNG BOX"
+clear.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+clear.TextColor3 = Color3.new(1, 1, 1)
+
+--// LOGIC XỬ LÝ AN TOÀN TUYỆT ĐỐI
+local running = false
+
+local function getArgsSafe(text)
+    if text == "" or #text < 2 then return nil end
+    
+    -- Cố gắng trích xuất bảng { ... }
+    local code = text:match("({%s*.*%s*})") 
+    if not code then return nil end
+    
+    -- Kiểm tra xem loadstring có lỗi không
+    local func, err = loadstring("return " .. code)
+    if not func then return nil end -- Nếu đang xoá dở, func sẽ nil -> bỏ qua lượt này
+    
+    local ok, result = pcall(func)
+    if ok then return result end
+    return nil
+end
+
+toggle.MouseButton1Click:Connect(function()
+    running = not running
+    toggle.Text = running and "SPAM: ON" or "SPAM: OFF"
+    toggle.BackgroundColor3 = running and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(120, 0, 0)
+end)
+
+clear.MouseButton1Click:Connect(function() box.Text = "" end)
+menuBtn.MouseButton1Click:Connect(function() frame.Visible = not frame.Visible end)
+
+--// VÒNG LẶP KHÔNG BAO GIỜ CHẾT
+task.spawn(function()
+    while true do
+        task.wait() -- Luôn chạy ngầm để đợi lệnh
+        
+        if running then
+            -- 1. Tìm Remote mới nhất (phòng trường hợp đổi kiếm)
+            local char = LP.Character
+            local remote = char and char:FindFirstChild("SwordDamage")
+            
+            -- 2. Lấy mã an toàn
+            local argsData = getArgsSafe(box.Text)
+            
+            -- 3. Chỉ bắn Remote khi có ĐỦ Remote và ĐỦ dữ liệu
+            if remote and argsData then
+                pcall(function()
+                    remote:FireServer(unpack(argsData))
+                end)
+            end
+            
+            -- 4. Nghỉ theo delay đã chỉnh
+            task.wait(tonumber(delayBox.Text) or 0.05)
+        else
+            -- Nếu tắt OFF, nghỉ lâu hơn một chút để tiết kiệm CPU
+            task.wait(0.2)
+        end
+    end
+end)
