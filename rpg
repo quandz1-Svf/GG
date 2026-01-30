@@ -1,3 +1,6 @@
+--// Script Tp
+loadstring(game:HttpGet("https://raw.githubusercontent.com/quandz1-Svf/GG/main/tp"))()
+
 --// SERVICES
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
