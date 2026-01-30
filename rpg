@@ -4,80 +4,75 @@ local LP = Players.LocalPlayer
 local PG = LP:WaitForChild("PlayerGui")
 
 --// CLEAN UP
-if PG:FindFirstChild("SwordSpam_Final_V10") then
-    PG:FindFirstChild("SwordSpam_Final_V10"):Destroy()
+if PG:FindFirstChild("SwordSpam_Pure_Mini_V2") then
+    PG:FindFirstChild("SwordSpam_Pure_Mini_V2"):Destroy()
 end
 
---// GUI
+--// GUI CREATION
 local gui = Instance.new("ScreenGui", PG)
-gui.Name = "SwordSpam_Final_V10"
+gui.Name = "SwordSpam_Pure_Mini_V2"
 gui.ResetOnSpawn = false
 
--- NÚT ẨN/HIỆN (MENU)
+-- Nút MENU
 local menuBtn = Instance.new("TextButton", gui)
-menuBtn.Size = UDim2.new(0, 50, 0, 25)
-menuBtn.Position = UDim2.new(0, 10, 0.4, 0)
+menuBtn.Size = UDim2.new(0, 55, 0, 25)
+menuBtn.Position = UDim2.new(0, 5, 0.4, 0)
 menuBtn.Text = "MENU"
-menuBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+menuBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 menuBtn.TextColor3 = Color3.new(1, 1, 1)
 menuBtn.Draggable = true
 menuBtn.TextSize = 10
 
--- FRAME CHÍNH
+-- Frame chính (Siêu nhỏ)
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 180, 0, 160) -- Thu gọn tối đa
-frame.Position = UDim2.new(0.5, -90, 0.5, -80)
+frame.Size = UDim2.new(0, 190, 0, 150) 
+frame.Position = UDim2.new(0.5, -95, 0.5, -75)
 frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 frame.Active = true
 frame.Draggable = true
-frame.Visible = true -- Mặc định hiện
 
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1, 0, 0, 20)
-title.Text = "AUTO-OFF V10"
+title.Text = "PURE SPAMMER NO-GUARD"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 title.TextSize = 10
 
+-- ===== INPUT BOX =====
 local box = Instance.new("TextBox", frame)
-box.Size = UDim2.new(1, -10, 0, 60)
-box.Position = UDim2.new(0, 5, 0, 25)
+box.Size = UDim2.new(1, -16, 0, 50)
+box.Position = UDim2.new(0, 8, 0, 25)
 box.MultiLine = true
 box.Text = ""
-box.PlaceholderText = "Dán Remote tại đây..."
+box.PlaceholderText = "Dán args = {...} vào đây"
 box.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 box.TextColor3 = Color3.new(1, 1, 1)
-box.TextSize = 9
 box.TextWrapped = true
+box.TextSize = 10
 
+-- ===== CONTROLS =====
 local toggle = Instance.new("TextButton", frame)
-toggle.Size = UDim2.new(1, -10, 0, 30)
-toggle.Position = UDim2.new(0, 5, 0, 90)
+toggle.Size = UDim2.new(1, -16, 0, 30)
+toggle.Position = UDim2.new(0, 8, 0, 80)
 toggle.Text = "SPAM: OFF"
 toggle.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
 toggle.TextColor3 = Color3.new(1, 1, 1)
 toggle.TextSize = 12
 
 local clear = Instance.new("TextButton", frame)
-clear.Size = UDim2.new(1, -10, 0, 25)
-clear.Position = UDim2.new(0, 5, 0, 125)
-clear.Text = "XOÁ TRỐNG"
+clear.Size = UDim2.new(1, -16, 0, 25)
+clear.Position = UDim2.new(0, 8, 0, 115)
+clear.Text = "XOÁ TEXT"
 clear.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 clear.TextColor3 = Color3.new(1, 1, 1)
 clear.TextSize = 10
 
---// LOGIC HÀM
+--// LOGIC
 local running = false
 
-local function setOFF()
-    running = false
-    toggle.Text = "SPAM: OFF"
-    toggle.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
-end
-
 local function getArgs(text)
-    if text == "" or #text < 5 then return nil end
-    local code = text:match("({%s*.*%s*})")
+    if text == "" then return nil end
+    local code = text:match("local%s+args%s*=%s*(%b{})") or text:match("(%b{})")
     if not code then return nil end
     local f = loadstring("return "..code)
     if f then 
@@ -87,48 +82,36 @@ local function getArgs(text)
     return nil
 end
 
--- Ẩn/Hiện Menu
-menuBtn.MouseButton1Click:Connect(function()
-    frame.Visible = not frame.Visible
-end)
-
--- Tự động OFF khi xóa text
-box:GetPropertyChangedSignal("Text"):Connect(function()
-    if box.Text == "" and running then setOFF() end
-end)
-
--- Nút Xóa
-clear.MouseButton1Click:Connect(function()
-    box.Text = ""
-    setOFF()
-end)
-
--- Nút Bật/Tắt
 toggle.MouseButton1Click:Connect(function()
-    if box.Text == "" then return end
     running = not running
     toggle.Text = running and "SPAM: ON" or "SPAM: OFF"
     toggle.BackgroundColor3 = running and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(120, 0, 0)
 end)
 
---// VÒNG LẶP CHÍNH (FIX LỖI)
+clear.MouseButton1Click:Connect(function() 
+    box.Text = "" 
+end)
+
+menuBtn.MouseButton1Click:Connect(function() 
+    frame.Visible = not frame.Visible 
+end)
+
+--// VÒNG LẶP SPAM THUẦN (KHÔNG TỰ TẮT)
 task.spawn(function()
     while true do
         task.wait()
         if running then
+            local argsData = getArgs(box.Text)
             local char = LP.Character
             local remote = char and char:FindFirstChild("SwordDamage")
-            local argsData = getArgs(box.Text)
             
-            -- Nếu mất kiếm (Remote mất) hoặc mất mã -> Tự OFF
-            if not remote or not argsData then
-                setOFF()
-            else
+            -- Chỉ gửi nếu có data và remote, nếu không có thì vẫn giữ ON và đợi vòng lặp sau
+            if remote and argsData then
                 pcall(function()
                     remote:FireServer(unpack(argsData))
                 end)
             end
-            task.wait(0.05) -- Tốc độ spam mặc định
+            task.wait(0.05)
         end
     end
 end)
