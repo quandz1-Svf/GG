@@ -102,7 +102,9 @@ RunService.RenderStepped:Connect(function()
     FloatStroke.Color = color
     BtnStroke.Color = color
     TitleBar.TextColor3 = color
-    
+    for stroke, _ in pairs(ledList) do
+        if stroke and stroke.Parent then stroke.Color = color else ledList[stroke] = nil end
+    end
     if IsTrading then
         timerLbl.Text = "TRADING..."
         timerLbl.TextColor3 = Color3.new(1, 1, 0)
@@ -115,35 +117,87 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+local function makeDraggable(obj, target)
+    target = target or obj
+    local dragToggle, dragStart, startPos
+    obj.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragToggle = true dragStart = input.Position startPos = target.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragToggle and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            target.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    obj.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragToggle = false end
+    end)
+end
+
+makeDraggable(TitleBar, MainFrame)
+makeDraggable(floatBtn)
+
+local function refreshPlayers()
+    for _, v in ipairs(PlayerSide:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local b = Instance.new("TextButton", PlayerSide)
+            b.Size = UDim2.new(0.95, 0, 0, 35)
+            local isSelected = (TargetPlayer == plr)
+            b.Text = (isSelected and "✅ " or "") .. (plr.DisplayName or plr.Name)
+            b.Font = isSelected and Enum.Font.GothamBold or Enum.Font.Gotham
+            b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+            b.TextColor3 = Color3.new(1, 1, 1)
+            b.BorderSizePixel = 0
+            Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+            if isSelected then
+                local s = Instance.new("UIStroke", b)
+                s.Thickness = 2
+                s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                ledList[s] = true
+            end
+            b.MouseButton1Click:Connect(function() TargetPlayer = (TargetPlayer == plr) and nil or plr refreshPlayers() end)
+        end
+    end
+    PlayerSide.CanvasSize = UDim2.new(0, 0, 0, PlayerSide.UIListLayout.AbsoluteContentSize.Y + 10)
+end
+
 local function updatePetList()
     local pets = {}
     for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
         local lvl = tonumber(tool:GetAttribute("Level")) or 0
-        if tool:IsA("Tool") and lvl >= MIN_LEVEL then
+        local mut = tool:GetAttribute("Mutation")
+        if tool:IsA("Tool") and mut and mut ~= "" and lvl >= MIN_LEVEL then
             local name = tool:GetAttribute("BrainrotName") or tool.Name
             pets[name] = (pets[name] or 0) + 1
         end
     end
-    for _, v in ipairs(PetSide:GetChildren()) do
-        if v:IsA("TextButton") then v:Destroy() end
-    end
+    for _, v in ipairs(PetSide:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
     for name, count in pairs(pets) do
         local b = Instance.new("TextButton", PetSide)
         b.Size = UDim2.new(0.95, 0, 0, 35)
+        local isSelected = (SelectedPetName == name)
         b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+        b.Text = ""
         b.BorderSizePixel = 0
         Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-
+        if isSelected then
+            local s = Instance.new("UIStroke", b)
+            s.Thickness = 2
+            s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+            ledList[s] = true
+        end
         local n = Instance.new("TextLabel", b)
         n.Size = UDim2.new(0.6, 0, 1, 0)
         n.Position = UDim2.fromOffset(8, 0)
-        n.Text = name
+        n.Text = (isSelected and "✅ " or "")..name
         n.TextColor3 = Color3.new(1, 1, 1)
         n.BackgroundTransparency = 1
         n.TextXAlignment = Enum.TextXAlignment.Left
-        n.Font = Enum.Font.Gotham
+        n.Font = isSelected and Enum.Font.GothamBold or Enum.Font.Gotham
         n.TextSize = 10
-
         local c = Instance.new("TextLabel", b)
         c.Size = UDim2.new(0.3, 0, 1, 0)
         c.Position = UDim2.fromScale(0.65, 0)
@@ -152,23 +206,45 @@ local function updatePetList()
         c.BackgroundTransparency = 1
         c.Font = Enum.Font.GothamBold
         c.TextSize = 11
+        b.MouseButton1Click:Connect(function() SelectedPetName = (SelectedPetName == name) and nil or name updatePetList() end)
     end
+    PetSide.CanvasSize = UDim2.new(0, 0, 0, PetSide.UIListLayout.AbsoluteContentSize.Y + 10)
 end
+
+task.spawn(function()
+    while true do
+        if CooldownTime > 0 then CooldownTime = math.max(0, CooldownTime - 0.1) end
+        task.wait(0.1)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if MainFrame.Visible then updatePetList() end
+        task.wait(2)
+    end
+end)
 
 task.spawn(function()
     while true do
         task.wait(0.5)
         if not TradeEnabled or IsTrading or CooldownTime > 0 or not TargetPlayer then continue end
-        
         local targetPet = nil
         for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
             local lvl = tonumber(tool:GetAttribute("Level")) or 0
-            if tool:IsA("Tool") and lvl >= MIN_LEVEL then
-                targetPet = tool
-                break
+            local mut = tool:GetAttribute("Mutation")
+            local name = tool:GetAttribute("BrainrotName") or tool.Name
+            if tool:IsA("Tool") and mut and mut ~= "" and lvl >= MIN_LEVEL then
+                if not SelectedPetName or name == SelectedPetName then
+                    local count = 0
+                    for _, t in ipairs(LocalPlayer.Backpack:GetChildren()) do
+                        local tName = t:GetAttribute("BrainrotName") or t.Name
+                        if tName == name then count += 1 end
+                    end
+                    if count > 2 then targetPet = tool break end
+                end
             end
         end
-
         if targetPet then
             IsTrading = true
             pcall(function()
@@ -183,13 +259,14 @@ task.spawn(function()
     end
 end)
 
-floatBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
-
+floatBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
 toggleBtn.MouseButton1Click:Connect(function()
     TradeEnabled = not TradeEnabled
     toggleBtn.Text = TradeEnabled and "STATUS: ON" or "STATUS: OFF"
     toggleBtn.BackgroundColor3 = TradeEnabled and Color3.fromRGB(30, 80, 30) or Color3.fromRGB(80, 30, 30)
     BtnStroke.Enabled = TradeEnabled
 end)
+
+refreshPlayers()
+Players.PlayerAdded:Connect(refreshPlayers)
+Players.PlayerRemoving:Connect(refreshPlayers)
