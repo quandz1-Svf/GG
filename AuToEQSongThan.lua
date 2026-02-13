@@ -1,4 +1,4 @@
-
+-- auto trang bi voi
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
