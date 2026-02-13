@@ -1,17 +1,12 @@
-
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
-
 local TARGET_NAME = "Strawberry Elephant"
-local TARGET_MUTATION = "Money"
 local MAX_LEVEL = 150
 local CHECK_DELAY = 1
 
-
 local AutoEquipEnabled = false
 local CurrentTool = nil
-
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "AutoEquipElephantUI"
@@ -25,7 +20,6 @@ frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
-
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
 local title = Instance.new("TextLabel", frame)
@@ -46,7 +40,6 @@ toggle.TextColor3 = Color3.new(1,1,1)
 toggle.BackgroundColor3 = Color3.fromRGB(90, 30, 30)
 Instance.new("UICorner", toggle).CornerRadius = UDim.new(0, 8)
 
-
 toggle.MouseButton1Click:Connect(function()
 	AutoEquipEnabled = not AutoEquipEnabled
 
@@ -60,11 +53,9 @@ toggle.MouseButton1Click:Connect(function()
 	end
 end)
 
-
 local function isValidPet(tool)
 	if not tool or not tool:IsA("Tool") then return false end
 	if tool:GetAttribute("BrainrotName") ~= TARGET_NAME then return false end
-	if tool:GetAttribute("Mutation") ~= TARGET_MUTATION then return false end
 
 	local lv = tool:GetAttribute("Level")
 	if type(lv) ~= "number" then return false end
@@ -97,7 +88,6 @@ local function findPetInBackpack()
 	return nil
 end
 
-
 task.spawn(function()
 	while true do
 		task.wait(CHECK_DELAY)
@@ -112,15 +102,12 @@ task.spawn(function()
 			continue
 		end
 
-		
 		local equipped = getEquippedPet()
 		if equipped then
 			if isValidPet(equipped) then
-				-- vẫn hợp lệ → giữ
 				CurrentTool = equipped
 				continue
 			else
-				
 				pcall(function()
 					equipped.Parent = LocalPlayer.Backpack
 				end)
@@ -128,7 +115,6 @@ task.spawn(function()
 			end
 		end
 
-		
 		local newPet = findPetInBackpack()
 		if newPet then
 			pcall(function()
@@ -136,7 +122,6 @@ task.spawn(function()
 				CurrentTool = newPet
 			end)
 		else
-		
 			CurrentTool = nil
 		end
 	end
