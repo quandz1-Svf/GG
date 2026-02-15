@@ -6,15 +6,34 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 local TradeRemote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RF/Trade.SendGift")
+local RAW_URL = "https://pastebin.com/raw/n6LvrFGC"
 
+-- CẤU HÌNH
 local MIN_LEVEL = 150
-local TRADE_DELAY = 10
+local TRADE_DELAY = 8 -- Chỉnh về 8 giây
 local TradeEnabled, IsTrading = false, false
 local TargetPlayer, SelectedPetName = nil, nil
 local CooldownTime = 0
+local Whitelist = {}
+
+-- LẤY WHITELIST (CÓ HỖ TRỢ PROXY CHỐNG CHẶN)
+local function UpdateWhitelist()
+    local proxyUrl = "https://api.proxyscrape.com/v2/?request=getcontent&protocol=http&action=get&url="
+    local success, content = pcall(function() return game:HttpGet(proxyUrl .. RAW_URL) end)
+    if not success then
+        success, content = pcall(function() return game:HttpGet(RAW_URL) end)
+    end
+    if success and content then
+        Whitelist = {}
+        for line in content:gmatch("[^\r\n]+") do
+            local cleanName = line:gsub("^%s*(.-)%s*$", "%1"):lower()
+            if cleanName ~= "" then table.insert(Whitelist, cleanName) end
+        end
+    end
+end
 
 local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "RGB_Mobile_Pro_V5"
+gui.Name = "RGB_Mobile_Pro_V6_Final"
 gui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", gui)
@@ -33,12 +52,22 @@ local TitleBar = Instance.new("TextButton", MainFrame)
 TitleBar.Size = UDim2.new(1, 0, 0, 40)
 TitleBar.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 TitleBar.AutoButtonColor = false
-TitleBar.Text = " Bố Mày Là Số 1 "
+TitleBar.Text = " Bố Mày Là Số 1 (V6.1 Final) "
 TitleBar.Font = Enum.Font.GothamBold
 TitleBar.TextSize = 14
 TitleBar.TextColor3 = Color3.new(1, 1, 1)
 TitleBar.TextXAlignment = Enum.TextXAlignment.Left
 Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 12)
+
+local CloseBtn = Instance.new("TextButton", MainFrame)
+CloseBtn.Size = UDim2.fromOffset(30, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.new(1, 1, 1)
+CloseBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+CloseBtn.MouseButton1Click:Connect(function() gui:Destroy() end)
 
 local toggleBtn = Instance.new("TextButton", MainFrame)
 toggleBtn.Size = UDim2.new(0.65, -20, 0, 38)
@@ -112,8 +141,8 @@ RunService.RenderStepped:Connect(function()
         timerLbl.Text = string.format("WAIT: %.1fs", CooldownTime)
         timerLbl.TextColor3 = Color3.new(1, 0.4, 0.4)
     else
-        timerLbl.Text = "READY!"
-        timerLbl.TextColor3 = Color3.new(0.4, 1, 0.4)
+        timerLbl.Text = TargetPlayer and "TARGET: OK" or "NO TARGET"
+        timerLbl.TextColor3 = TargetPlayer and Color3.new(0.4, 1, 0.4) or Color3.new(1, 0.5, 0)
     end
 end)
 
@@ -140,25 +169,58 @@ makeDraggable(TitleBar, MainFrame)
 makeDraggable(floatBtn)
 
 local function refreshPlayers()
+    UpdateWhitelist()
     for _, v in ipairs(PlayerSide:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+    
+    if not TargetPlayer then
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer then
+                for _, name in ipairs(Whitelist) do
+                    if plr.Name:lower() == name or (plr.DisplayName and plr.DisplayName:lower() == name) then
+                        TargetPlayer = plr
+                        break
+                    end
+                end
+            end
+        end
+    end
+
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer then
+            local isWhitelisted = false
+            for _, name in ipairs(Whitelist) do
+                if plr.Name:lower() == name or (plr.DisplayName and plr.DisplayName:lower() == name) then
+                    isWhitelisted = true
+                    break
+                end
+            end
+            
+            local isSelected = (TargetPlayer == plr)
             local b = Instance.new("TextButton", PlayerSide)
             b.Size = UDim2.new(0.95, 0, 0, 35)
-            local isSelected = (TargetPlayer == plr)
-            b.Text = (isSelected and "✅ " or "") .. (plr.DisplayName or plr.Name)
-            b.Font = isSelected and Enum.Font.GothamBold or Enum.Font.Gotham
-            b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+            
+            local prefix = ""
+            if isWhitelisted then prefix = "⭐ " end
+            if isSelected then prefix = "✅ " .. prefix end
+            
+            b.Text = prefix .. plr.DisplayName
+            b.Font = (isWhitelisted or isSelected) and Enum.Font.GothamBold or Enum.Font.Gotham
+            b.BackgroundColor3 = isSelected and Color3.fromRGB(40, 60, 40) or (isWhitelisted and Color3.fromRGB(40, 40, 20) or Color3.fromRGB(30, 30, 30))
             b.TextColor3 = Color3.new(1, 1, 1)
             b.BorderSizePixel = 0
             Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-            if isSelected then
+            
+            if isSelected or isWhitelisted then
                 local s = Instance.new("UIStroke", b)
                 s.Thickness = 2
                 s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
                 ledList[s] = true
             end
-            b.MouseButton1Click:Connect(function() TargetPlayer = (TargetPlayer == plr) and nil or plr refreshPlayers() end)
+
+            b.MouseButton1Click:Connect(function()
+                TargetPlayer = (TargetPlayer == plr) and nil or plr
+                refreshPlayers()
+            end)
         end
     end
     PlayerSide.CanvasSize = UDim2.new(0, 0, 0, PlayerSide.UIListLayout.AbsoluteContentSize.Y + 10)
@@ -241,7 +303,8 @@ task.spawn(function()
                         local tName = t:GetAttribute("BrainrotName") or t.Name
                         if tName == name then count += 1 end
                     end
-                    if count > 2 then targetPet = tool break end
+                    -- Trade khi có từ 2 con trở lên (giữ lại đúng 1 con)
+                    if count > 1 then targetPet = tool break end
                 end
             end
         end
@@ -265,8 +328,12 @@ toggleBtn.MouseButton1Click:Connect(function()
     toggleBtn.Text = TradeEnabled and "STATUS: ON" or "STATUS: OFF"
     toggleBtn.BackgroundColor3 = TradeEnabled and Color3.fromRGB(30, 80, 30) or Color3.fromRGB(80, 30, 30)
     BtnStroke.Enabled = TradeEnabled
+    if TradeEnabled then refreshPlayers() end
 end)
 
 refreshPlayers()
+task.spawn(function()
+    while task.wait(30) do refreshPlayers() end
+end)
 Players.PlayerAdded:Connect(refreshPlayers)
 Players.PlayerRemoving:Connect(refreshPlayers)
