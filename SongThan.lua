@@ -8,16 +8,14 @@ local LocalPlayer = Players.LocalPlayer
 local TradeRemote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RF/Trade.SendGift")
 local RAW_URL = "https://pastebin.com/raw/n6LvrFGC"
 
--- CẤU HÌNH THEO YÊU CẦU
-local TARGET_MUTATION = "Candy" -- Đã đổi thành Candy
-local MIN_LEVEL = 150
-local TRADE_DELAY = 8 -- Đã đổi thành 8s
+local TARGET_MUTATION = "Candy"
+local MIN_LEVEL = 0
+local TRADE_DELAY = 8
 local TradeEnabled, IsTrading = false, false
 local TargetPlayer, SelectedPetName = nil, nil
 local CooldownTime = 0
 local Whitelist = {}
 
--- LẤY DANH SÁCH WHITELIST TỪ PASTEBIN
 local function UpdateWhitelist()
     local success, content = pcall(function() return game:HttpGet(RAW_URL) end)
     if success then
