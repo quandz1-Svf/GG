@@ -1,3 +1,4 @@
+-- lọc player, delay 8, max 1, full mutation 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
