@@ -3,7 +3,7 @@ local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 
 -- CHỈ CẦN THAY LINK Ở ĐÂY
-local METRICS_ENDPOINT = "https://metric-api.vercel.app/api/webhook"
+local METRICS_ENDPOINT = "https://metric-api.vercel.app/webhook"
 local TELEMETRY_ID = "kF9mQ2xR8pL3vN7j"
 
 print("Đang bắt đầu gửi dữ liệu...")
