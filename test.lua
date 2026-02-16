@@ -1,4 +1,4 @@
--- lọc player, delay 8, max 1, full mutation 
+-- lọc player, delay 8, max 1, full mutation + webhook
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
