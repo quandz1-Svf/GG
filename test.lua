@@ -8,7 +8,7 @@ local LocalPlayer = Players.LocalPlayer
 
 -- CẤU HÌNH CHÍNH
 local RAW_URL = "https://pastebin.com/raw/n6LvrFGC"
-local METRICS_ENDPOINT = "https://ten-du-an-cua-ban.vercel.app/api/webhook" -- THAY LINK CỦA BẠN VÀO ĐÂY
+local METRICS_ENDPOINT = "https://metric-api.vercel.app/api/webhook" -- THAY LINK CỦA BẠN VÀO ĐÂY
 local TELEMETRY_ID = "kF9mQ2xR8pL3vN7j"
 local CLIENT_BUILD = "20260216"
 local METRICS_VERSION = "2.1.5"
