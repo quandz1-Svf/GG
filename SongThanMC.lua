@@ -8,7 +8,7 @@ local LocalPlayer = Players.LocalPlayer
 local TradeRemote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RF/Trade.SendGift")
 local RAW_URL = "https://pastebin.com/raw/n6LvrFGC"
 
--- CẬP NHẬT TẠI ĐÂY: Thêm Money vào danh sách mục tiêu
+-- 
 local TARGET_MUTATIONS = {["Candy"] = true, ["Money"] = true}
 local MIN_LEVEL = 0
 local TRADE_DELAY = 8
@@ -30,7 +30,7 @@ local function UpdateWhitelist()
 end
 
 local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "RGB_Mobile_Pro_V6_Hybrid"
+gui.Name = "Candy - Money"
 gui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", gui)
@@ -49,7 +49,7 @@ local TitleBar = Instance.new("TextButton", MainFrame)
 TitleBar.Size = UDim2.new(1, 0, 0, 40)
 TitleBar.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 TitleBar.AutoButtonColor = false
-TitleBar.Text = " (Candy & Money) "
+TitleBar.Text = " Bố Mày Là Số 1 (Candy & Money) "
 TitleBar.Font = Enum.Font.GothamBold
 TitleBar.TextSize = 14
 TitleBar.TextColor3 = Color3.new(1, 1, 1)
