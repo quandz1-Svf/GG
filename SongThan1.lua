@@ -33,7 +33,7 @@ local function UpdateWhitelist()
 end
 
 local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "RGB_Mobile_Pro_V6_Final"
+gui.Name = "All Mutation"
 gui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", gui)
