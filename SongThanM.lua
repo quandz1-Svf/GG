@@ -29,7 +29,7 @@ local function UpdateWhitelist()
 end
 
 local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "RGB_Mobile_Pro_V6_Candy"
+gui.Name = "Candy 🍬"
 gui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", gui)
